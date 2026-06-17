@@ -328,15 +328,17 @@ body{background:var(--void);color:var(--light);font-family:'Inter',sans-serif;fo
         </div>
       </div>
 
-      <!-- TRANSCRIPTION -->
+      <!-- TRANSCRIPTION TEMPS RÉEL -->
       <div class="card" id="transcriptCard" style="display:none">
-        <div class="card-title">📝 Transcription</div>
-        <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-primary" id="btnTranscribe" onclick="transcribeAudio()">✨ Transcrire avec l'IA</button>
-          <button class="btn btn-ghost" onclick="clearTranscript()">Effacer</button>
-          <span style="font-size:11px;color:var(--mist);">ou saisissez le texte directement</span>
+        <div class="card-title">📝 Transcription en direct</div>
+        <div style="background:rgba(126,184,201,.08);border:1px solid rgba(126,184,201,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--aurora);">
+          💡 Le texte s'écrit automatiquement pendant que vous parlez. Arrêtez la séance puis corrigez si besoin avant de générer la fiche.
         </div>
-        <div class="transcript-area" id="transcriptArea" contenteditable="true" data-ph="true">Saisissez ou transcrivez la séance ici…</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-ghost" onclick="clearTranscript()">🗑 Effacer</button>
+          <span style="font-size:11px;color:var(--mist);">Vous pouvez aussi saisir ou corriger le texte manuellement</span>
+        </div>
+        <div class="transcript-area" id="transcriptArea" contenteditable="true" data-ph="true" style="min-height:160px;">Saisissez ou parlez — le texte apparaîtra ici en temps réel…</div>
       </div>
 
       <!-- PHOTOS -->
@@ -747,77 +749,111 @@ function buildWaveform() {
 }
 
 // ╔══════════════════════════════════════════════════════╗
-//   RECORDING — Compatible tous navigateurs
+//   ENREGISTREMENT + TRANSCRIPTION TEMPS RÉEL (Web Speech)
 // ╚══════════════════════════════════════════════════════╝
-let mediaRecorder=null, audioChunks=[], timerInterval=null;
-let elapsedSeconds=0, isPaused=false, isRecording=false;
-let currentAudioBlob=null, waveAnimId=null, analyser=null, dataArray=null, audioCtx=null, waveStream=null;
+let timerInterval=null, elapsedSeconds=0, isPaused=false, isRecording=false;
+let waveAnimId=null, analyser=null, dataArray=null, audioCtx=null, waveStream=null;
+let _recognition=null, _transcriptFinal='', _transcriptInterim='';
 
-async function toggleRecord() {
-  if (!isRecording) await startRecording();
+function toggleRecord() {
+  if (!isRecording) startRecording();
   else stopRecording();
 }
 
-async function startRecording() {
-  // Check support
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setMicStatus('err', '❌ Votre navigateur ne supporte pas l\'accès au microphone. Utilisez Chrome, Firefox ou Safari récent.');
+function startRecording() {
+  // Vérifier support Web Speech
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setMicStatus('err', '❌ Votre navigateur ne supporte pas la transcription. Utilisez Chrome ou Brave.');
+    showToast('❌ Utilisez Chrome ou Brave pour la transcription temps réel');
     return;
   }
-  setMicStatus('warn', '⏳ Autorisation microphone en cours…');
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true } });
-    waveStream = stream;
-    setMicStatus('ok', '✅ Microphone actif');
+  setMicStatus('warn', '⏳ Démarrage… autorisez le microphone si demandé');
 
-    // Audio visualizer
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = audioCtx.createMediaStreamSource(stream);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      dataArray = new Uint8Array(analyser.frequencyBinCount);
-      src.connect(analyser);
-    } catch(e) { analyser = null; }
+  // Web Speech Recognition
+  _recognition = new SR();
+  _recognition.lang = 'fr-FR';
+  _recognition.continuous = true;
+  _recognition.interimResults = true;
+  _recognition.maxAlternatives = 1;
 
-    // Pick best supported MIME
-    const mimes = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg','audio/mp4','audio/mpeg'];
-    const mime = mimes.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
-    mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = () => {
-      const t = mime || 'audio/webm';
-      currentAudioBlob = new Blob(audioChunks, { type: t });
-    };
-    mediaRecorder.start(200);
+  _transcriptFinal = '';
+  _transcriptInterim = '';
 
+  _recognition.onstart = () => {
     isRecording = true; isPaused = false; elapsedSeconds = 0;
-    startTimer(); animateWave();
+    startTimer(); startFakeWave();
     document.getElementById('btnRecord').classList.add('is-recording');
     document.getElementById('btnRecord').textContent = '⏸';
     document.getElementById('btnPause').disabled = false;
     document.getElementById('btnStop').disabled = false;
-    setRecState('recording', '● Enregistrement en cours');
+    setRecState('recording', '● Transcription en cours…');
+    setMicStatus('ok', '✅ Microphone actif — je transcris en temps réel');
+    // Afficher la zone de transcription live tout de suite
+    document.getElementById('transcriptCard').style.display = 'block';
+    document.getElementById('photosCard').style.display = 'block';
+    document.getElementById('ficheCard').style.display = 'block';
+    advanceStep(2);
+  };
 
-  } catch(err) {
-    let msg = '❌ Microphone non accessible.';
-    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
-      msg = '❌ Permission refusée. Autorisez le microphone dans les paramètres de votre navigateur.';
-    else if (err.name === 'NotFoundError')
-      msg = '❌ Aucun microphone détecté sur cet appareil.';
-    else if (err.name === 'NotReadableError')
-      msg = '❌ Le microphone est utilisé par une autre application.';
-    setMicStatus('err', msg);
-    showToast(msg);
+  _recognition.onresult = (e) => {
+    _transcriptInterim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        _transcriptFinal += t + ' ';
+      } else {
+        _transcriptInterim += t;
+      }
+    }
+    updateTranscriptDisplay();
+  };
+
+  _recognition.onerror = (e) => {
+    if (e.error === 'not-allowed') {
+      setMicStatus('err', '❌ Permission refusée — autorisez le micro dans les paramètres du navigateur');
+      stopRecording();
+    } else if (e.error === 'network') {
+      setMicStatus('warn', '⚠️ Erreur réseau — vérifiez votre connexion internet');
+    } else if (e.error === 'no-speech') {
+      // Normal, on continue
+    }
+  };
+
+  // Redémarrer automatiquement si le navigateur coupe (Android coupe après ~60s)
+  _recognition.onend = () => {
+    if (isRecording && !isPaused) {
+      try { _recognition.start(); } catch(e) {}
+    }
+  };
+
+  try {
+    _recognition.start();
+  } catch(e) {
+    setMicStatus('err', '❌ Impossible de démarrer la reconnaissance vocale');
   }
+}
+
+function updateTranscriptDisplay() {
+  const area = document.getElementById('transcriptArea');
+  area.dataset.ph = 'false';
+  // Texte final en clair + interim en italique grisé
+  area.innerHTML =
+    (escHtml(_transcriptFinal) || '') +
+    (_transcriptInterim ? `<span style="color:var(--mist);font-style:italic;">${escHtml(_transcriptInterim)}</span>` : '');
+  // Auto-scroll
+  area.scrollTop = area.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function togglePause() {
   if (!isRecording) return;
   if (!isPaused) {
-    try { mediaRecorder.pause(); } catch(e){}
+    try { _recognition.stop(); } catch(e){}
     clearInterval(timerInterval);
     cancelAnimationFrame(waveAnimId);
     resetWaveform();
@@ -825,18 +861,21 @@ function togglePause() {
     document.getElementById('btnPause').textContent = '▶ Reprendre';
     document.getElementById('btnRecord').textContent = '▶';
     setRecState('paused', '⏸ En pause');
+    setMicStatus('warn', '⏸ Transcription en pause');
   } else {
-    try { mediaRecorder.resume(); } catch(e){}
-    startTimer(); animateWave();
     isPaused = false;
+    try { _recognition.start(); } catch(e){}
+    startTimer(); startFakeWave();
     document.getElementById('btnPause').textContent = '⏸ Pause';
     document.getElementById('btnRecord').textContent = '⏸';
-    setRecState('recording', '● Enregistrement en cours');
+    setRecState('recording', '● Transcription en cours…');
+    setMicStatus('ok', '✅ Microphone actif');
   }
 }
 
 function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') { try { mediaRecorder.stop(); } catch(e){} }
+  isPaused = true; // empêche le redémarrage auto
+  if (_recognition) { try { _recognition.stop(); _recognition.abort(); } catch(e){} _recognition = null; }
   if (waveStream) waveStream.getTracks().forEach(t => t.stop());
   if (audioCtx) { try { audioCtx.close(); } catch(e){} }
   clearInterval(timerInterval);
@@ -848,13 +887,36 @@ function stopRecording() {
   document.getElementById('btnPause').disabled = true;
   document.getElementById('btnPause').textContent = '⏸ Pause';
   document.getElementById('btnStop').disabled = true;
-  setRecState('', `✅ Enregistrée — ${formatTime(elapsedSeconds)}`);
-  setMicStatus('ok', `✅ Séance de ${formatTime(elapsedSeconds)} enregistrée`);
-  advanceStep(2);
-  document.getElementById('transcriptCard').style.display = 'block';
-  document.getElementById('photosCard').style.display = 'block';
-  document.getElementById('ficheCard').style.display = 'block';
-  showToast('✅ Enregistrement terminé — transcrivez ou ajoutez des photos');
+  setRecState('', `✅ Séance de ${formatTime(elapsedSeconds)} — texte prêt`);
+  setMicStatus('ok', `✅ ${formatTime(elapsedSeconds)} transcrites — vous pouvez corriger le texte puis générer la fiche`);
+  // Finaliser le texte (enlever l'interim)
+  const area = document.getElementById('transcriptArea');
+  if (_transcriptFinal.trim()) {
+    area.textContent = _transcriptFinal.trim();
+    area.dataset.ph = 'false';
+  }
+  showToast('✅ Transcription terminée — corrigez si besoin puis générez la fiche');
+}
+
+function startFakeWave() {
+  cancelAnimationFrame(waveAnimId);
+  // Tenter visualiseur audio réel
+  if (!waveStream) {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(s => {
+      waveStream = s;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const src = audioCtx.createMediaStreamSource(s);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+        src.connect(analyser);
+      } catch(e) {}
+      animateWave();
+    }).catch(() => animateWave());
+  } else {
+    animateWave();
+  }
 }
 
 function startTimer() {
@@ -1144,67 +1206,12 @@ function closeAnnotIfOutside(e) {
 }
 
 // ╔══════════════════════════════════════════════════════╗
-//   TRANSCRIPTION
+//   TRANSCRIPT HELPERS
 // ╚══════════════════════════════════════════════════════╝
-async function transcribeAudio() {
-  const btn = document.getElementById('btnTranscribe');
-  const area = document.getElementById('transcriptArea');
-
-  if (!currentAudioBlob) {
-    area.textContent = '';
-    area.dataset.ph = 'false';
-    area.focus();
-    showToast('💡 Aucun enregistrement — saisissez la transcription ici');
-    advanceStep(3);
-    return;
-  }
-
-  btn.innerHTML = '<span class="spinner"></span> Transcription…';
-  btn.disabled = true;
-
-  try {
-    const b64 = await blobToBase64(currentAudioBlob);
-    const mime = currentAudioBlob.type || 'audio/webm';
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1000,
-        messages:[{
-          role:'user',
-          content:[
-            { type:'document', source:{ type:'base64', media_type: mime, data: b64 } },
-            { type:'text', text:'Transcris fidèlement cet enregistrement audio d\'une séance de thérapie/kinésiologie en français. Retourne uniquement la transcription brute, sans commentaires ni formatage.' }
-          ]
-        }]
-      })
-    });
-
-    const data = await response.json();
-    const txt = data.content?.map(c=>c.text||'').join('') || '';
-
-    if (txt && !txt.includes('error')) {
-      area.textContent = txt;
-      area.dataset.ph = 'false';
-      showToast('✅ Transcription terminée');
-      advanceStep(3);
-    } else { throw new Error('no text'); }
-  } catch(e) {
-    area.textContent = '';
-    area.dataset.ph = 'false';
-    area.focus();
-    showToast('⚠️ Transcription auto non disponible — saisissez le texte ici');
-  }
-
-  btn.innerHTML = '✨ Transcrire avec l\'IA';
-  btn.disabled = false;
-}
-
 function clearTranscript() {
+  _transcriptFinal = ''; _transcriptInterim = '';
   const a = document.getElementById('transcriptArea');
-  a.textContent = 'Saisissez ou transcrivez la séance ici…';
+  a.textContent = 'Saisissez ou parlez — le texte apparaîtra ici en temps réel…';
   a.dataset.ph = 'true';
 }
 
@@ -1212,19 +1219,12 @@ function clearTranscript() {
 document.addEventListener('DOMContentLoaded',()=>{
   const a = document.getElementById('transcriptArea');
   if(a){
-    a.addEventListener('focus',()=>{ if(a.dataset.ph==='true'){a.textContent='';a.dataset.ph='false';} });
-    a.addEventListener('blur',()=>{ if(!a.textContent.trim()){a.textContent='Saisissez ou transcrivez la séance ici…';a.dataset.ph='true';} });
+    a.addEventListener('focus',()=>{ if(a.dataset.ph==='true'){a.innerHTML='';a.dataset.ph='false';} });
+    a.addEventListener('blur',()=>{ if(!a.textContent.trim()){a.textContent='Saisissez ou parlez — le texte apparaîtra ici en temps réel…';a.dataset.ph='true';} });
   }
 });
 
-function blobToBase64(blob){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onloadend=()=>res(r.result.split(',')[1]);
-    r.onerror=rej;
-    r.readAsDataURL(blob);
-  });
-}
+
 
 // ╔══════════════════════════════════════════════════════╗
 //   GÉNÉRATION FICHE
@@ -1232,9 +1232,10 @@ function blobToBase64(blob){
 async function genererFiche() {
   const btn = event.currentTarget;
   const area = document.getElementById('transcriptArea');
-  const transcript = area.dataset.ph==='true' ? '' : area.textContent.trim();
+  // Récupérer le texte propre (sans le span interim grisé)
+  const transcript = area.dataset.ph==='true' ? '' : (area.innerText || area.textContent || '').trim();
 
-  if (!transcript) { showToast('⚠️ Ajoutez d\'abord une transcription ou des notes'); return; }
+  if (!transcript) { showToast('⚠️ Parlez pendant la séance ou saisissez du texte, puis générez la fiche'); return; }
 
   const clientName  = document.getElementById('clientName').value || 'Client';
   const sessionType = document.getElementById('sessionType').value;
