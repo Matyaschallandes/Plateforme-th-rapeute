@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumina — Espace Thérapeute Sécurisé</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap');
+:root {
+  --void:#0d0f14;--deep:#151821;--surface:#1e2330;--rim:#2a3045;
+  --mist:#8892aa;--light:#c8d0e0;--pale:#eef1f7;
+  --aurora:#7eb8c9;--gold:#c9a96e;--rose:#c97e8a;--sage:#7eb89a;
+  --glow:rgba(126,184,201,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--void);color:var(--light);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;font-size:14px;}
+
+/* ── LOCK SCREEN ── */
+#lockScreen{position:fixed;inset:0;background:var(--void);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;}
+.lock-logo{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:var(--aurora);letter-spacing:.08em;margin-bottom:4px;}
+.lock-logo span{color:var(--gold);font-style:italic;}
+.lock-sub{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);margin-bottom:40px;}
+.lock-box{background:var(--surface);border:1px solid var(--rim);border-radius:16px;padding:36px 40px;width:340px;text-align:center;}
+.lock-icon{font-size:32px;margin-bottom:16px;}
+.lock-title{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);margin-bottom:20px;}
+.lock-input{width:100%;background:var(--deep);border:1px solid var(--rim);border-radius:8px;padding:12px 16px;color:var(--pale);font-family:'Inter',sans-serif;font-size:15px;text-align:center;letter-spacing:.12em;outline:none;transition:border-color .2s;margin-bottom:12px;}
+.lock-input:focus{border-color:var(--aurora);}
+.lock-input::placeholder{color:var(--mist);opacity:.5;letter-spacing:.05em;}
+.lock-btn{width:100%;background:var(--aurora);color:var(--void);border:none;border-radius:8px;padding:12px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;letter-spacing:.08em;cursor:pointer;transition:background .2s;margin-bottom:8px;}
+.lock-btn:hover{background:#9acfdf;}
+.lock-err{color:var(--rose);font-size:12px;min-height:18px;transition:opacity .3s;}
+.lock-hint{color:var(--mist);font-size:11px;margin-top:12px;}
+.lock-setup-note{color:var(--sage);font-size:11px;margin-top:8px;}
+
+/* ── SHELL ── */
+.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;min-height:100vh;}
+.topbar{grid-column:1/-1;background:var(--deep);border-bottom:1px solid var(--rim);display:flex;align-items:center;padding:0 24px;gap:16px;}
+.topbar-logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;letter-spacing:.08em;color:var(--aurora);}
+.topbar-logo span{color:var(--gold);font-style:italic;}
+.topbar-sub{color:var(--mist);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border-left:1px solid var(--rim);padding-left:16px;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.sec-badge{font-size:10px;background:rgba(126,184,154,.12);color:var(--sage);border:1px solid rgba(126,184,154,.3);padding:3px 10px;border-radius:20px;letter-spacing:.06em;}
+.lock-out-btn{font-size:11px;color:var(--mist);cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid var(--rim);background:transparent;transition:all .2s;}
+.lock-out-btn:hover{color:var(--rose);border-color:var(--rose);}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--deep);border-right:1px solid var(--rim);padding:24px 0;display:flex;flex-direction:column;gap:4px;}
+.nav-section-label{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--mist);padding:16px 20px 8px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--mist);font-size:13px;transition:all .2s;border-left:2px solid transparent;}
+.nav-item:hover{color:var(--light);background:var(--glow);}
+.nav-item.active{color:var(--aurora);border-left-color:var(--aurora);background:rgba(126,184,201,.08);}
+.nav-icon{width:16px;text-align:center;font-size:14px;}
+.nav-badge{margin-left:auto;background:var(--surface);color:var(--mist);font-size:10px;padding:1px 6px;border-radius:10px;}
+
+/* ── MAIN ── */
+.main{overflow-y:auto;padding:32px;}
+.panel{display:none;} .panel.active{display:block;}
+.page-header{margin-bottom:28px;}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:var(--pale);letter-spacing:.02em;}
+.page-title em{color:var(--aurora);font-style:italic;}
+.page-sub{color:var(--mist);font-size:12px;margin-top:4px;letter-spacing:.06em;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--rim);border-radius:12px;padding:24px;margin-bottom:20px;}
+.card-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.card-title::after{content:'';flex:1;height:1px;background:var(--rim);}
+
+/* ── RECORDING ── */
+.record-zone{background:var(--deep);border:1px solid var(--rim);border-radius:16px;padding:36px 28px;text-align:center;}
+.client-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;}
+.field-group{display:flex;flex-direction:column;gap:6px;text-align:left;}
+.field-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mist);}
+.field-input,.field-select{background:var(--surface);border:1px solid var(--rim);border-radius:8px;padding:9px 12px;color:var(--light);font-family:'Inter',sans-serif;font-size:13px;font-weight:300;outline:none;transition:border-color .2s;width:100%;}
+.field-input:focus,.field-select:focus{border-color:var(--aurora);}
+.field-input::placeholder{color:var(--mist);opacity:.5;}
+
+/* waveform */
+.waveform-container{height:60px;margin:20px 0;display:flex;align-items:center;justify-content:center;gap:3px;}
+.wave-bar{width:3px;background:var(--rim);border-radius:2px;transition:height .08s ease;}
+.wave-bar.active{background:var(--aurora);}
+.rec-timer{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:300;color:var(--pale);letter-spacing:.05em;}
+.rec-state{font-size:11px;color:var(--mist);letter-spacing:.1em;text-transform:uppercase;margin:6px 0 20px;}
+.rec-state.recording{color:var(--rose);}
+.rec-state.paused{color:var(--gold);}
+.rec-controls{display:flex;align-items:center;justify-content:center;gap:16px;}
+.btn-record-main{width:72px;height:72px;border-radius:50%;background:var(--rose);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:24px;transition:all .25s;box-shadow:0 0 0 0 rgba(201,126,138,.4);}
+.btn-record-main.is-recording{animation:ringpulse 1.5s ease-out infinite;}
+@keyframes ringpulse{0%{box-shadow:0 0 0 0 rgba(201,126,138,.5)}70%{box-shadow:0 0 0 18px rgba(201,126,138,0)}100%{box-shadow:0 0 0 0 rgba(201,126,138,0)}}
+
+/* mic status */
+.mic-status{margin-top:12px;font-size:11px;padding:8px 14px;border-radius:6px;display:inline-block;}
+.mic-ok{background:rgba(126,184,154,.1);color:var(--sage);border:1px solid rgba(126,184,154,.3);}
+.mic-err{background:rgba(201,126,138,.1);color:var(--rose);border:1px solid rgba(201,126,138,.3);}
+.mic-warn{background:rgba(201,169,110,.1);color:var(--gold);border:1px solid rgba(201,169,110,.3);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:400;letter-spacing:.06em;transition:all .2s;}
+.btn-primary{background:var(--aurora);color:var(--void);}
+.btn-primary:hover{background:#9acfdf;}
+.btn-danger{background:var(--rose);color:white;}
+.btn-ghost{background:transparent;color:var(--mist);border:1px solid var(--rim);}
+.btn-ghost:hover{color:var(--light);border-color:var(--light);}
+.btn-gold{background:var(--gold);color:var(--void);}
+.btn-gold:hover{background:#d4b47a;}
+.btn-sage{background:var(--sage);color:var(--void);}
+.btn-sage:hover{background:#8ec8aa;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ── TRANSCRIPT ── */
+.transcript-area{background:var(--deep);border:1px solid var(--rim);border-radius:8px;padding:16px;min-height:120px;font-size:13px;line-height:1.7;color:var(--light);white-space:pre-wrap;font-family:'Inter',sans-serif;font-weight:300;outline:none;transition:border-color .2s;}
+.transcript-area:focus{border-color:var(--aurora);}
+.transcript-area[data-ph="true"]{color:var(--mist);opacity:.5;font-style:italic;}
+
+/* ── PHOTOS ── */
+.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px;}
+.photo-card{background:var(--deep);border:1px solid var(--rim);border-radius:10px;overflow:hidden;position:relative;cursor:pointer;transition:border-color .2s;}
+.photo-card:hover{border-color:var(--aurora);}
+.photo-card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;}
+.photo-caption{padding:8px 10px;font-size:11px;color:var(--mist);}
+.photo-del{position:absolute;top:6px;right:6px;background:rgba(13,15,20,.8);border:none;color:var(--rose);cursor:pointer;border-radius:4px;padding:2px 6px;font-size:11px;}
+.photo-upload-zone{border:2px dashed var(--rim);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;color:var(--mist);}
+.photo-upload-zone:hover{border-color:var(--aurora);color:var(--aurora);}
+.photo-upload-icon{font-size:28px;margin-bottom:8px;}
+.photo-upload-text{font-size:12px;}
+
+/* ── ANNOTATION MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--deep);border:1px solid var(--rim);border-radius:16px;width:100%;max-width:720px;max-height:90vh;overflow-y:auto;}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--rim);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--pale);}
+.modal-close{background:none;border:none;color:var(--mist);cursor:pointer;font-size:20px;line-height:1;}
+.modal-body{padding:24px;}
+.canvas-wrap{position:relative;border-radius:8px;overflow:hidden;background:#000;cursor:crosshair;}
+.canvas-wrap canvas{display:block;max-width:100%;}
+.annotation-tools{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.tool-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--rim);background:var(--surface);color:var(--light);cursor:pointer;font-size:12px;transition:all .2s;}
+.tool-btn.active{background:var(--aurora);color:var(--void);border-color:var(--aurora);}
+.color-dot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:border-color .2s;}
+.color-dot.active{border-color:var(--pale);}
+.legend-input{background:var(--surface);border:1px solid var(--rim);border-radius:6px;padding:7px 10px;color:var(--light);font-family:'Inter',sans-serif;font-size:12px;outline:none;flex:1;}
+.legend-input:focus{border-color:var(--aurora);}
+.legends-list{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--light);}
+.legend-color{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+
+/* ── FICHE ── */
+.fiche-section{margin-bottom:20px;}
+.fiche-section-title{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--aurora);margin-bottom:10px;}
+.fiche-content{background:var(--deep);border:1px solid var(--rim);border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.8;color:var(--light);white-space:pre-wrap;min-height:60px;}
+.cles-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.cle-badge{background:var(--deep);border:1px solid var(--rim);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;}
+.cle-icon{font-size:18px;line-height:1;padding-top:2px;}
+.cle-label{font-size:11px;font-weight:500;color:var(--aurora);letter-spacing:.06em;}
+.cle-text{font-size:12px;color:var(--light);line-height:1.5;margin-top:3px;}
+
+/* ── JOURNAL ── */
+.journal-entry{background:var(--surface);border:1px solid var(--rim);border-radius:10px;padding:18px 20px;margin-bottom:12px;cursor:pointer;transition:all .2s;}
+.journal-entry:hover{border-color:var(--aurora);}
+.journal-entry-date{font-size:10px;color:var(--mist);letter-spacing:.1em;}
+.journal-entry-client{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--pale);margin:4px 0;}
+.journal-entry-preview{font-size:12px;color:var(--mist);line-height:1.5;}
+.journal-entry-badges{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.tag{font-size:10px;padding:2px 8px;border-radius:20px;letter-spacing:.06em;}
+.tag-aurora{background:rgba(126,184,201,.15);color:var(--aurora);}
+.tag-gold{background:rgba(201,169,110,.15);color:var(--gold);}
+
+/* ── GUÉRISON ── */
+.journal-textarea{width:100%;background:var(--deep);border:1px solid var(--rim);border-radius:8px;padding:14px 16px;color:var(--light);font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.7;resize:vertical;outline:none;transition:border-color .2s;min-height:100px;}
+.journal-textarea:focus{border-color:var(--aurora);}
+.journal-textarea::placeholder{color:var(--mist);opacity:.5;font-style:italic;}
+
+/* ── RAPPORT ── */
+.rapport-preview{background:var(--deep);border:1px solid var(--rim);border-radius:12px;padding:40px 48px;font-family:'Cormorant Garamond',serif;line-height:1.8;}
+.rapport-title{font-size:28px;font-weight:300;color:var(--pale);margin-bottom:4px;}
+.rapport-sub{font-size:14px;color:var(--mist);font-style:italic;margin-bottom:32px;}
+.rapport-divider{border:none;border-top:1px solid var(--rim);margin:24px 0;}
+.rapport-section-h{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--aurora);font-family:'Inter',sans-serif;font-weight:500;margin-bottom:12px;margin-top:28px;}
+.rapport-body{font-size:15px;color:var(--light);white-space:pre-wrap;}
+
+/* ── STEPS ── */
+.steps{display:flex;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:4px;}
+.step{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.08em;color:var(--mist);padding:7px 14px;border-radius:6px;transition:all .2s;}
+.step.done{color:var(--sage);}
+.step.current{color:var(--aurora);background:rgba(126,184,201,.08);}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
+.step.done .step-num{background:var(--sage);color:var(--void);}
+.step.current .step-num{background:var(--aurora);color:var(--void);}
+.step-arrow{color:var(--rim);font-size:10px;}
+
+/* ── MISC ── */
+.spinner{width:16px;height:16px;border:2px solid var(--rim);border-top-color:var(--aurora);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:28px;right:28px;background:var(--surface);border:1px solid var(--aurora);color:var(--light);padding:12px 20px;border-radius:10px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:9000;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--deep);}
+::-webkit-scrollbar-thumb{background:var(--rim);border-radius:3px;}
+
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .client-fields{grid-template-columns:1fr!important;}
+  .cles-grid{grid-template-columns:1fr;}
+  .grid-2{grid-template-columns:1fr;}
+  .rapport-preview{padding:24px;}
+  .modal{margin:10px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     LOCK SCREEN
+══════════════════════════════════════ -->
+<div id="lockScreen">
+  <div class="lock-logo">Lumina <span>Thérapie</span></div>
+  <div class="lock-sub">Espace praticien sécurisé</div>
+  <div class="lock-box" id="lockBox">
+    <div class="lock-icon">🔐</div>
+    <div class="lock-title" id="lockTitle">Accès sécurisé</div>
+    <input class="lock-input" id="lockPassword" type="password" placeholder="Mot de passe" autocomplete="current-password" />
+    <input class="lock-input" id="lockPassword2" type="password" placeholder="Confirmer le mot de passe" style="display:none;" autocomplete="new-password" />
+    <button class="lock-btn" id="lockBtn" onclick="handleLock()">Déverrouiller</button>
+    <div class="lock-err" id="lockErr"></div>
+    <div class="lock-hint" id="lockHint"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════ -->
+<div class="shell" id="appShell" style="display:none;">
+
+  <header class="topbar">
+    <div class="topbar-logo">Lumina <span>Thérapie</span></div>
+    <div class="topbar-sub">Espace praticien</div>
+    <div class="topbar-right">
+      <span class="sec-badge">🔒 Chiffré</span>
+      <button class="lock-out-btn" onclick="lockApp()">Verrouiller</button>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <div class="nav-section-label">Séances</div>
+    <div class="nav-item active" data-panel="seance" onclick="showPanel('seance',this)">
+      <span class="nav-icon">🎙</span> Nouvelle séance
+    </div>
+    <div class="nav-item" data-panel="journal" onclick="showPanel('journal',this)">
+      <span class="nav-icon">📖</span> Journal
+      <span class="nav-badge" id="journalCount">0</span>
+    </div>
+    <div class="nav-section-label">Guérison</div>
+    <div class="nav-item" data-panel="guerison" onclick="showPanel('guerison',this)">
+      <span class="nav-icon">✨</span> Mon parcours
+    </div>
+    <div class="nav-section-label">Diplôme</div>
+    <div class="nav-item" data-panel="rapport" onclick="showPanel('rapport',this)">
+      <span class="nav-icon">📄</span> Travail de diplôme
+    </div>
+    <div class="nav-section-label">Sécurité</div>
+    <div class="nav-item" data-panel="securite" onclick="showPanel('securite',this)">
+      <span class="nav-icon">🔑</span> Changer mot de passe
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ══ SÉANCE ══ -->
+    <div class="panel active" id="panel-seance">
+      <div class="page-header">
+        <div class="page-title">Nouvelle <em>séance</em></div>
+        <div class="page-sub">Enregistrement · Transcription · Photos · Fiche énergétique</div>
+      </div>
+
+      <div class="steps">
+        <div class="step current" id="step1"><span class="step-num">1</span> Enregistrer</div>
+        <span class="step-arrow">›</span>
+        <div class="step" id="step2"><span class="step-num">2</span> Transcrire</div>
+        <span class="step-arrow">›</span>
+        <div class="step" id="step3"><span class="step-num">3</span> Photos</div>
+        <span class="step-arrow">›</span>
+        <div class="step" id="step4"><span class="step-num">4</span> Fiche</div>
+      </div>
+
+      <!-- ENREGISTREMENT -->
+      <div class="card">
+        <div class="card-title">🎙 Informations & enregistrement</div>
+        <div class="record-zone">
+          <div class="client-fields">
+            <div class="field-group">
+              <label class="field-label">Prénom du client</label>
+              <input class="field-input" id="clientName" placeholder="Marie…" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Type de séance</label>
+              <select class="field-select" id="sessionType">
+                <option>Kinésiologie</option>
+                <option>Thérapie holistique</option>
+                <option>Soin énergétique</option>
+                <option>Accompagnement</option>
+                <option>Séance de suivi</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Date</label>
+              <input class="field-input" id="sessionDate" type="date" />
+            </div>
+          </div>
+
+          <div class="waveform-container" id="waveform"></div>
+          <div class="rec-timer" id="recTimer">00:00</div>
+          <div class="rec-state" id="recState">En attente</div>
+
+          <div class="rec-controls">
+            <button class="btn btn-ghost" id="btnPause" disabled onclick="togglePause()">⏸ Pause</button>
+            <button class="btn-record-main" id="btnRecord" onclick="toggleRecord()">🎙</button>
+            <button class="btn btn-ghost" id="btnStop" disabled onclick="stopRecording()">⏹ Terminer</button>
+          </div>
+
+          <div id="micStatus" class="mic-status mic-warn" style="margin-top:14px;">
+            ⏳ Cliquez sur 🎙 — une fenêtre d'autorisation microphone va apparaître
+          </div>
+          <div style="margin-top:10px;color:var(--mist);font-size:11px;">
+            Audio traité localement · Aucune donnée transmise sans votre accord
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSCRIPTION -->
+      <div class="card" id="transcriptCard" style="display:none">
+        <div class="card-title">📝 Transcription</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-primary" id="btnTranscribe" onclick="transcribeAudio()">✨ Transcrire avec l'IA</button>
+          <button class="btn btn-ghost" onclick="clearTranscript()">Effacer</button>
+          <span style="font-size:11px;color:var(--mist);">ou saisissez le texte directement</span>
+        </div>
+        <div class="transcript-area" id="transcriptArea" contenteditable="true" data-ph="true">Saisissez ou transcrivez la séance ici…</div>
+      </div>
+
+      <!-- PHOTOS -->
+      <div class="card" id="photosCard" style="display:none">
+        <div class="card-title">📸 Photos & diagrammes</div>
+        <div class="photo-upload-zone" onclick="document.getElementById('photoInput').click()">
+          <div class="photo-upload-icon">📷</div>
+          <div class="photo-upload-text">Ajouter des photos, diagrammes ou fiches<br><span style="font-size:10px;opacity:.6;">Caméra · Galerie · Fichiers</span></div>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="addPhotos(event)" />
+        <div class="photos-grid" id="photosGrid"></div>
+      </div>
+
+      <!-- GÉNÉRATION FICHE -->
+      <div class="card" id="ficheCard" style="display:none">
+        <div class="card-title">⚡ Générer la fiche de séance</div>
+        <div class="field-group" style="max-width:440px;margin-bottom:16px;">
+          <label class="field-label">Intention principale (optionnel)</label>
+          <input class="field-input" id="intention" placeholder="ex: libérer les blocages du plexus solaire…" />
+        </div>
+        <button class="btn btn-gold" onclick="genererFiche()">🌟 Rédiger la fiche & les clés de guérison</button>
+      </div>
+
+      <!-- FICHE GÉNÉRÉE -->
+      <div class="card" id="ficheGeneree" style="display:none">
+        <div class="card-title">📋 Fiche de séance énergétique</div>
+        <div class="fiche-section">
+          <div class="fiche-section-title">🌿 Résumé de la séance</div>
+          <div class="fiche-content" id="ficheResume"></div>
+        </div>
+        <div class="fiche-section">
+          <div class="fiche-section-title">🔮 Observations énergétiques</div>
+          <div class="fiche-content" id="ficheObservations"></div>
+        </div>
+        <div class="fiche-section">
+          <div class="fiche-section-title">🗝 Clés de guérison énergétique</div>
+          <div class="cles-grid" id="ficheCles"></div>
+        </div>
+        <div class="fiche-section">
+          <div class="fiche-section-title">🌱 Recommandations</div>
+          <div class="fiche-content" id="ficheRecos"></div>
+        </div>
+        <div id="fichePhotosSection" style="display:none">
+          <div class="fiche-section-title" style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--aurora);margin-bottom:10px;">📸 Photos attachées</div>
+          <div class="photos-grid" id="fichePhotosList"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+          <button class="btn btn-sage" onclick="sauvegarderSeance()">💾 Sauvegarder dans le journal</button>
+          <button class="btn btn-ghost" onclick="imprimerFiche()">🖨 Imprimer / PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ JOURNAL ══ -->
+    <div class="panel" id="panel-journal">
+      <div class="page-header">
+        <div class="page-title">Journal <em>des séances</em></div>
+        <div class="page-sub">Historique complet · Données chiffrées</div>
+      </div>
+      <div id="journalList"></div>
+    </div>
+
+    <!-- ══ GUÉRISON ══ -->
+    <div class="panel" id="panel-guerison">
+      <div class="page-header">
+        <div class="page-title">Mon <em>parcours de guérison</em></div>
+        <div class="page-sub">Journal personnel · Réflexions · Évolution</div>
+      </div>
+      <div class="card">
+        <div class="card-title">✍️ Entrée du jour</div>
+        <div class="client-fields" style="grid-template-columns:1fr 1fr;margin-bottom:14px;">
+          <div class="field-group">
+            <label class="field-label">Date</label>
+            <input class="field-input" id="guerDate" type="date" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Niveau énergie (1–10)</label>
+            <input class="field-input" id="guerNiveau" type="number" min="1" max="10" placeholder="7" />
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:12px;">
+          <label class="field-label">Ce que je ressens</label>
+          <textarea class="journal-textarea" id="guerRessenti" placeholder="Aujourd'hui j'ai ressenti…"></textarea>
+        </div>
+        <div class="field-group" style="margin-bottom:12px;">
+          <label class="field-label">Prises de conscience</label>
+          <textarea class="journal-textarea" id="guerPrises" placeholder="Une prise de conscience importante…"></textarea>
+        </div>
+        <div class="field-group" style="margin-bottom:16px;">
+          <label class="field-label">Clés & outils utilisés</label>
+          <textarea class="journal-textarea" id="guerOutils" placeholder="Techniques pratiquées, mantras, exercices…"></textarea>
+        </div>
+        <button class="btn btn-sage" onclick="sauvegarderGuerison()">💾 Sauvegarder cette entrée</button>
+      </div>
+      <div id="guerEntries"></div>
+    </div>
+
+    <!-- ══ RAPPORT ══ -->
+    <div class="panel" id="panel-rapport">
+      <div class="page-header">
+        <div class="page-title">Travail <em>de diplôme</em></div>
+        <div class="page-sub">Synthèse · Rapport final kinésiologue</div>
+      </div>
+      <div class="card">
+        <div class="card-title">📄 Paramètres du rapport</div>
+        <div class="client-fields">
+          <div class="field-group">
+            <label class="field-label">Votre nom</label>
+            <input class="field-input" id="rapportNom" placeholder="Sophie Dupont" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Titre du travail</label>
+            <input class="field-input" id="rapportTitre" placeholder="La kinésiologie comme outil de guérison…" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">École / Formation</label>
+            <input class="field-input" id="rapportEcole" placeholder="Institut de kinésiologie…" />
+          </div>
+        </div>
+        <div class="field-group" style="margin-top:14px;">
+          <label class="field-label">Thématique centrale de votre guérison</label>
+          <textarea class="journal-textarea" id="rapportTheme" placeholder="Décrivez le fil conducteur de votre parcours…" style="min-height:90px;"></textarea>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-gold" onclick="genererRapport()">🌟 Générer le rapport complet</button>
+          <button class="btn btn-ghost" onclick="imprimerRapport()">🖨 Imprimer / PDF</button>
+        </div>
+      </div>
+      <div id="rapportOutput"></div>
+    </div>
+
+    <!-- ══ SÉCURITÉ ══ -->
+    <div class="panel" id="panel-securite">
+      <div class="page-header">
+        <div class="page-title">Changer <em>de mot de passe</em></div>
+        <div class="page-sub">Chiffrement AES-256 · Données protégées</div>
+      </div>
+      <div class="card" style="max-width:420px;">
+        <div class="card-title">🔑 Nouveau mot de passe</div>
+        <div class="field-group" style="margin-bottom:12px;">
+          <label class="field-label">Mot de passe actuel</label>
+          <input class="field-input" id="secOld" type="password" placeholder="Mot de passe actuel" />
+        </div>
+        <div class="field-group" style="margin-bottom:12px;">
+          <label class="field-label">Nouveau mot de passe</label>
+          <input class="field-input" id="secNew1" type="password" placeholder="Nouveau mot de passe" />
+        </div>
+        <div class="field-group" style="margin-bottom:16px;">
+          <label class="field-label">Confirmer</label>
+          <input class="field-input" id="secNew2" type="password" placeholder="Confirmer le nouveau mot de passe" />
+        </div>
+        <button class="btn btn-primary" onclick="changerMdp()">Changer le mot de passe</button>
+        <div id="secMsg" style="margin-top:10px;font-size:12px;min-height:18px;"></div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--rim);color:var(--mist);font-size:11px;line-height:1.7;">
+          🔒 Vos données sont chiffrées avec AES-256 directement sur votre appareil.<br>
+          Personne d'autre ne peut y accéder, même si le fichier est copié.<br>
+          ⚠️ Si vous oubliez votre mot de passe, les données ne peuvent pas être récupérées.
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ ANNOTATION MODAL ══ -->
+<div class="modal-overlay" id="annotModal" style="display:none" onclick="closeAnnotIfOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Annoter l'image</div>
+      <button class="modal-close" onclick="closeAnnotModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="canvas-wrap">
+        <canvas id="annotCanvas"></canvas>
+      </div>
+      <div class="annotation-tools">
+        <button class="tool-btn active" id="toolDraw" onclick="setTool('draw')">✏️ Dessiner</button>
+        <button class="tool-btn" id="toolText" onclick="setTool('text')">T Texte</button>
+        <button class="tool-btn" id="toolArrow" onclick="setTool('arrow')">→ Flèche</button>
+        <button class="tool-btn" id="toolErase" onclick="setTool('erase')">🧹 Effacer</button>
+        <div style="width:1px;background:var(--rim);height:24px;"></div>
+        <div class="color-dot active" style="background:#7eb8c9;" onclick="setColor('#7eb8c9',this)" title="Bleu"></div>
+        <div class="color-dot" style="background:#c97e8a;" onclick="setColor('#c97e8a',this)" title="Rose"></div>
+        <div class="color-dot" style="background:#c9a96e;" onclick="setColor('#c9a96e',this)" title="Or"></div>
+        <div class="color-dot" style="background:#7eb89a;" onclick="setColor('#7eb89a',this)" title="Vert"></div>
+        <div class="color-dot" style="background:#ffffff;" onclick="setColor('#ffffff',this)" title="Blanc"></div>
+        <div style="width:1px;background:var(--rim);height:24px;"></div>
+        <input type="range" id="brushSize" min="2" max="20" value="3" style="width:80px;accent-color:var(--aurora);" />
+        <button class="tool-btn" onclick="undoAnnot()">↩ Annuler</button>
+        <button class="tool-btn" onclick="clearAnnot()">🗑 Tout effacer</button>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+        <input class="legend-input" id="legendInput" placeholder="Ajouter une légende (ex: Point réflexe L3)…" onkeydown="if(event.key==='Enter')addLegend()" />
+        <button class="tool-btn" onclick="addLegend()">+ Ajouter</button>
+      </div>
+      <div class="legends-list" id="legendsList"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <button class="btn btn-primary" onclick="saveAnnotation()">💾 Sauvegarder l'annotation</button>
+        <button class="btn btn-ghost" onclick="closeAnnotModal()">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════╗
+//   CRYPTO — AES-256-GCM via WebCrypto
+// ╚══════════════════════════════════════════════════════╝
+const SALT_KEY = 'lumina_salt';
+const DATA_KEY = 'lumina_data_enc';
+const HASH_KEY = 'lumina_hash';
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:200000, hash:'SHA-256' },
+    keyMaterial,
+    { name:'AES-GCM', length:256 },
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+async function encryptData(data, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(password, salt);
+  const enc  = new TextEncoder();
+  const ct   = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, enc.encode(JSON.stringify(data)));
+  const buf  = new Uint8Array(salt.length + iv.length + ct.byteLength);
+  buf.set(salt, 0);
+  buf.set(iv, 16);
+  buf.set(new Uint8Array(ct), 28);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function decryptData(b64, password) {
+  const buf  = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const salt = buf.slice(0, 16);
+  const iv   = buf.slice(16, 28);
+  const ct   = buf.slice(28);
+  const key  = await deriveKey(password, salt);
+  const pt   = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+async function hashPassword(pw) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(pw + 'lumina_salt_v1'));
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   STATE
+// ╚══════════════════════════════════════════════════════╝
+let _password = '';
+let _data = { sessions:[], guer:[] };
+let _sessionPhotos = []; // {dataUrl, caption, legends, annotated}
+
+// ╔══════════════════════════════════════════════════════╗
+//   LOCK / UNLOCK
+// ╚══════════════════════════════════════════════════════╝
+const isFirstSetup = () => !localStorage.getItem(HASH_KEY);
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('sessionDate').value = today();
+  document.getElementById('guerDate').value = today();
+  buildWaveform();
+  initLockScreen();
+});
+
+function initLockScreen() {
+  if (isFirstSetup()) {
+    document.getElementById('lockTitle').textContent = 'Créer votre mot de passe';
+    document.getElementById('lockPassword').placeholder = 'Choisissez un mot de passe sécurisé';
+    document.getElementById('lockPassword2').style.display = 'block';
+    document.getElementById('lockBtn').textContent = 'Créer mon espace sécurisé';
+    document.getElementById('lockHint').textContent = '🔒 Première utilisation — choisissez un mot de passe fort';
+  } else {
+    document.getElementById('lockHint').textContent = '⚠️ Si vous oubliez votre mot de passe, les données ne peuvent pas être récupérées.';
+  }
+  document.getElementById('lockPassword').addEventListener('keydown', e => { if(e.key==='Enter') handleLock(); });
+  document.getElementById('lockPassword2').addEventListener('keydown', e => { if(e.key==='Enter') handleLock(); });
+}
+
+async function handleLock() {
+  const pw  = document.getElementById('lockPassword').value;
+  const pw2 = document.getElementById('lockPassword2').value;
+  const errEl = document.getElementById('lockErr');
+  errEl.textContent = '';
+
+  if (!pw) { errEl.textContent = 'Veuillez saisir un mot de passe.'; return; }
+
+  if (isFirstSetup()) {
+    if (pw.length < 6) { errEl.textContent = 'Minimum 6 caractères.'; return; }
+    if (pw !== pw2) { errEl.textContent = 'Les mots de passe ne correspondent pas.'; return; }
+    document.getElementById('lockBtn').innerHTML = '<span class="spinner"></span>';
+    const h = await hashPassword(pw);
+    localStorage.setItem(HASH_KEY, h);
+    _password = pw;
+    _data = { sessions:[], guer:[] };
+    await saveData();
+    unlockApp();
+  } else {
+    document.getElementById('lockBtn').innerHTML = '<span class="spinner"></span>';
+    const h = await hashPassword(pw);
+    if (h !== localStorage.getItem(HASH_KEY)) {
+      document.getElementById('lockBtn').textContent = 'Déverrouiller';
+      errEl.textContent = '❌ Mot de passe incorrect.';
+      document.getElementById('lockPassword').value = '';
+      return;
+    }
+    _password = pw;
+    // Load encrypted data
+    const enc = localStorage.getItem(DATA_KEY);
+    if (enc) {
+      try { _data = await decryptData(enc, _password); }
+      catch(e) { _data = { sessions:[], guer:[] }; }
+    } else { _data = { sessions:[], guer:[] }; }
+    unlockApp();
+  }
+}
+
+function unlockApp() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'grid';
+  renderJournal();
+  renderGuerEntries();
+  updateJournalCount();
+  // Auto-lock after 15 min idle
+  resetIdleTimer();
+}
+
+function lockApp() {
+  _password = '';
+  _data = { sessions:[], guer:[] };
+  document.getElementById('lockPassword').value = '';
+  document.getElementById('lockPassword2').value = '';
+  document.getElementById('lockErr').textContent = '';
+  document.getElementById('lockBtn').textContent = isFirstSetup() ? 'Créer mon espace sécurisé' : 'Déverrouiller';
+  document.getElementById('lockScreen').style.display = 'flex';
+  document.getElementById('appShell').style.display = 'none';
+}
+
+// Auto-lock
+let idleTimer;
+function resetIdleTimer() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { showToast('🔒 Verrouillage automatique'); lockApp(); }, 15 * 60 * 1000);
+}
+['click','keydown','mousemove','touchstart'].forEach(ev => document.addEventListener(ev, resetIdleTimer, true));
+
+async function saveData() {
+  if (!_password) return;
+  const enc = await encryptData(_data, _password);
+  localStorage.setItem(DATA_KEY, enc);
+}
+
+async function changerMdp() {
+  const old  = document.getElementById('secOld').value;
+  const n1   = document.getElementById('secNew1').value;
+  const n2   = document.getElementById('secNew2').value;
+  const msg  = document.getElementById('secMsg');
+  msg.style.color = 'var(--rose)';
+
+  const h = await hashPassword(old);
+  if (h !== localStorage.getItem(HASH_KEY)) { msg.textContent = '❌ Mot de passe actuel incorrect.'; return; }
+  if (n1.length < 6) { msg.textContent = 'Nouveau mot de passe trop court (min 6 caractères).'; return; }
+  if (n1 !== n2) { msg.textContent = 'Les mots de passe ne correspondent pas.'; return; }
+
+  _password = n1;
+  const nh = await hashPassword(n1);
+  localStorage.setItem(HASH_KEY, nh);
+  await saveData();
+  msg.style.color = 'var(--sage)';
+  msg.textContent = '✅ Mot de passe changé avec succès.';
+  document.getElementById('secOld').value = '';
+  document.getElementById('secNew1').value = '';
+  document.getElementById('secNew2').value = '';
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   NAV
+// ╚══════════════════════════════════════════════════════╝
+function showPanel(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   WAVEFORM
+// ╚══════════════════════════════════════════════════════╝
+function buildWaveform() {
+  const wf = document.getElementById('waveform');
+  wf.innerHTML = '';
+  for (let i = 0; i < 40; i++) {
+    const b = document.createElement('div');
+    b.className = 'wave-bar';
+    b.style.height = '6px';
+    wf.appendChild(b);
+  }
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   RECORDING — Compatible tous navigateurs
+// ╚══════════════════════════════════════════════════════╝
+let mediaRecorder=null, audioChunks=[], timerInterval=null;
+let elapsedSeconds=0, isPaused=false, isRecording=false;
+let currentAudioBlob=null, waveAnimId=null, analyser=null, dataArray=null, audioCtx=null, waveStream=null;
+
+async function toggleRecord() {
+  if (!isRecording) await startRecording();
+  else stopRecording();
+}
+
+async function startRecording() {
+  // Check support
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setMicStatus('err', '❌ Votre navigateur ne supporte pas l\'accès au microphone. Utilisez Chrome, Firefox ou Safari récent.');
+    return;
+  }
+  setMicStatus('warn', '⏳ Autorisation microphone en cours…');
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true } });
+    waveStream = stream;
+    setMicStatus('ok', '✅ Microphone actif');
+
+    // Audio visualizer
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      src.connect(analyser);
+    } catch(e) { analyser = null; }
+
+    // Pick best supported MIME
+    const mimes = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg','audio/mp4','audio/mpeg'];
+    const mime = mimes.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+    mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const t = mime || 'audio/webm';
+      currentAudioBlob = new Blob(audioChunks, { type: t });
+    };
+    mediaRecorder.start(200);
+
+    isRecording = true; isPaused = false; elapsedSeconds = 0;
+    startTimer(); animateWave();
+    document.getElementById('btnRecord').classList.add('is-recording');
+    document.getElementById('btnRecord').textContent = '⏸';
+    document.getElementById('btnPause').disabled = false;
+    document.getElementById('btnStop').disabled = false;
+    setRecState('recording', '● Enregistrement en cours');
+
+  } catch(err) {
+    let msg = '❌ Microphone non accessible.';
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
+      msg = '❌ Permission refusée. Autorisez le microphone dans les paramètres de votre navigateur.';
+    else if (err.name === 'NotFoundError')
+      msg = '❌ Aucun microphone détecté sur cet appareil.';
+    else if (err.name === 'NotReadableError')
+      msg = '❌ Le microphone est utilisé par une autre application.';
+    setMicStatus('err', msg);
+    showToast(msg);
+  }
+}
+
+function togglePause() {
+  if (!isRecording) return;
+  if (!isPaused) {
+    try { mediaRecorder.pause(); } catch(e){}
+    clearInterval(timerInterval);
+    cancelAnimationFrame(waveAnimId);
+    resetWaveform();
+    isPaused = true;
+    document.getElementById('btnPause').textContent = '▶ Reprendre';
+    document.getElementById('btnRecord').textContent = '▶';
+    setRecState('paused', '⏸ En pause');
+  } else {
+    try { mediaRecorder.resume(); } catch(e){}
+    startTimer(); animateWave();
+    isPaused = false;
+    document.getElementById('btnPause').textContent = '⏸ Pause';
+    document.getElementById('btnRecord').textContent = '⏸';
+    setRecState('recording', '● Enregistrement en cours');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') { try { mediaRecorder.stop(); } catch(e){} }
+  if (waveStream) waveStream.getTracks().forEach(t => t.stop());
+  if (audioCtx) { try { audioCtx.close(); } catch(e){} }
+  clearInterval(timerInterval);
+  cancelAnimationFrame(waveAnimId);
+  resetWaveform();
+  isRecording = false; isPaused = false;
+  document.getElementById('btnRecord').classList.remove('is-recording');
+  document.getElementById('btnRecord').textContent = '🎙';
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnPause').textContent = '⏸ Pause';
+  document.getElementById('btnStop').disabled = true;
+  setRecState('', `✅ Enregistrée — ${formatTime(elapsedSeconds)}`);
+  setMicStatus('ok', `✅ Séance de ${formatTime(elapsedSeconds)} enregistrée`);
+  advanceStep(2);
+  document.getElementById('transcriptCard').style.display = 'block';
+  document.getElementById('photosCard').style.display = 'block';
+  document.getElementById('ficheCard').style.display = 'block';
+  showToast('✅ Enregistrement terminé — transcrivez ou ajoutez des photos');
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => { elapsedSeconds++; document.getElementById('recTimer').textContent = formatTime(elapsedSeconds); }, 1000);
+}
+
+function animateWave() {
+  const bars = document.querySelectorAll('.wave-bar');
+  if (analyser) {
+    analyser.getByteTimeDomainData(dataArray);
+    const step = Math.floor(dataArray.length / bars.length);
+    bars.forEach((b, i) => {
+      const v = Math.abs(dataArray[i * step] - 128);
+      b.style.height = (6 + v * 0.7) + 'px';
+      b.classList.add('active');
+    });
+  } else {
+    bars.forEach(b => {
+      b.style.height = (6 + Math.random() * 44) + 'px';
+      b.classList.add('active');
+    });
+  }
+  waveAnimId = requestAnimationFrame(animateWave);
+}
+
+function resetWaveform() {
+  document.querySelectorAll('.wave-bar').forEach(b => { b.style.height='6px'; b.classList.remove('active'); });
+}
+
+function formatTime(s) {
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+function setRecState(cls, txt) {
+  const el = document.getElementById('recState');
+  el.className = 'rec-state' + (cls ? ' '+cls : '');
+  el.textContent = txt;
+}
+
+function setMicStatus(type, msg) {
+  const el = document.getElementById('micStatus');
+  el.className = 'mic-status mic-' + type;
+  el.textContent = msg;
+}
+
+function advanceStep(n) {
+  for (let i=1;i<=4;i++){
+    const el=document.getElementById('step'+i);
+    if(!el)continue;
+    el.classList.remove('current','done');
+    if(i<n) el.classList.add('done');
+    else if(i===n) el.classList.add('current');
+  }
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   PHOTOS & ANNOTATION
+// ╚══════════════════════════════════════════════════════╝
+let _annotPhotoIdx = -1;
+let _annotTool = 'draw';
+let _annotColor = '#7eb8c9';
+let _annotHistory = [];
+let _isDrawing = false;
+let _lastX = 0, _lastY = 0;
+let _startX = 0, _startY = 0;
+let _annotCtx = null;
+let _annotImg = null;
+let _legends = [];
+
+function addPhotos(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      _sessionPhotos.push({ dataUrl: ev.target.result, caption: file.name.replace(/\.[^.]+$/,''), legends: [], annotated: null });
+      renderPhotosGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+  advanceStep(3);
+}
+
+function renderPhotosGrid() {
+  const grid = document.getElementById('photosGrid');
+  grid.innerHTML = '';
+  _sessionPhotos.forEach((p, i) => {
+    const src = p.annotated || p.dataUrl;
+    grid.innerHTML += `
+      <div class="photo-card">
+        <img src="${src}" alt="${p.caption}" onclick="openAnnotModal(${i})" />
+        <button class="photo-del" onclick="deletePhoto(${i},event)">✕</button>
+        <div class="photo-caption">
+          <input style="background:transparent;border:none;color:var(--mist);font-size:11px;width:100%;outline:none;font-family:'Inter',sans-serif;"
+            value="${p.caption}"
+            placeholder="Légende…"
+            onchange="_sessionPhotos[${i}].caption=this.value"
+          />
+          <div style="font-size:10px;color:var(--aurora);margin-top:2px;cursor:pointer;" onclick="openAnnotModal(${i})">✏️ Annoter</div>
+        </div>
+      </div>`;
+  });
+}
+
+function deletePhoto(i, e) {
+  e.stopPropagation();
+  _sessionPhotos.splice(i, 1);
+  renderPhotosGrid();
+}
+
+// ANNOTATION
+function openAnnotModal(idx) {
+  _annotPhotoIdx = idx;
+  _legends = [...(_sessionPhotos[idx].legends || [])];
+  const modal = document.getElementById('annotModal');
+  modal.style.display = 'flex';
+  const img = new Image();
+  img.onload = () => {
+    _annotImg = img;
+    const canvas = document.getElementById('annotCanvas');
+    const maxW = Math.min(img.width, 660);
+    const scale = maxW / img.width;
+    canvas.width  = maxW;
+    canvas.height = img.height * scale;
+    _annotCtx = canvas.getContext('2d');
+    _annotCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // If already annotated, draw on top
+    if (_sessionPhotos[idx].annotated) {
+      const over = new Image();
+      over.onload = () => _annotCtx.drawImage(over, 0, 0, canvas.width, canvas.height);
+      over.src = _sessionPhotos[idx].annotated;
+    }
+    _annotHistory = [canvas.toDataURL()];
+    renderLegends();
+    setupAnnotCanvas(canvas);
+  };
+  img.src = _sessionPhotos[idx].dataUrl;
+}
+
+function setupAnnotCanvas(canvas) {
+  // Remove old listeners
+  const c = canvas.cloneNode(true);
+  canvas.parentNode.replaceChild(c, canvas);
+  const ctx = c.getContext('2d');
+  const saved = _annotHistory[_annotHistory.length-1];
+  const base = new Image();
+  base.onload = () => ctx.drawImage(base, 0, 0);
+  base.src = saved;
+  _annotCtx = ctx;
+
+  const getPos = e => {
+    const rect = c.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x:(src.clientX-rect.left)*(c.width/rect.width), y:(src.clientY-rect.top)*(c.height/rect.height) };
+  };
+
+  const down = e => {
+    e.preventDefault();
+    _isDrawing = true;
+    const p = getPos(e);
+    _lastX=p.x; _lastY=p.y; _startX=p.x; _startY=p.y;
+    if (_annotTool==='text') {
+      const txt = prompt('Texte à ajouter :');
+      if (txt) {
+        ctx.font = `${document.getElementById('brushSize').value*4}px Inter,sans-serif`;
+        ctx.fillStyle = _annotColor;
+        ctx.fillText(txt, p.x, p.y);
+        _annotHistory.push(c.toDataURL());
+      }
+      _isDrawing = false;
+    }
+  };
+  const move = e => {
+    if (!_isDrawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    const sz = parseInt(document.getElementById('brushSize').value);
+    ctx.lineWidth = sz;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (_annotTool==='draw') {
+      ctx.strokeStyle = _annotColor;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.beginPath(); ctx.moveTo(_lastX,_lastY); ctx.lineTo(p.x,p.y); ctx.stroke();
+    } else if (_annotTool==='erase') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.arc(p.x,p.y,sz*2,0,Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    _lastX=p.x; _lastY=p.y;
+  };
+  const up = e => {
+    if (!_isDrawing) return;
+    _isDrawing = false;
+    const p = getPos(e||{touches:[]});
+    if (_annotTool==='arrow') {
+      drawArrow(ctx, _startX, _startY, p.x, p.y, _annotColor, parseInt(document.getElementById('brushSize').value));
+    }
+    _annotHistory.push(c.toDataURL());
+  };
+
+  c.addEventListener('mousedown', down);
+  c.addEventListener('mousemove', move);
+  c.addEventListener('mouseup', up);
+  c.addEventListener('touchstart', down, {passive:false});
+  c.addEventListener('touchmove', move, {passive:false});
+  c.addEventListener('touchend', up, {passive:false});
+}
+
+function drawArrow(ctx, x1,y1,x2,y2,color,size) {
+  const hw=size*3, hl=size*5;
+  const angle = Math.atan2(y2-y1, x2-x1);
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=size;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*Math.cos(angle-Math.PI/6), y2-hl*Math.sin(angle-Math.PI/6));
+  ctx.lineTo(x2-hl*Math.cos(angle+Math.PI/6), y2-hl*Math.sin(angle+Math.PI/6));
+  ctx.closePath(); ctx.fill();
+}
+
+function setTool(t) {
+  _annotTool = t;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tool'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('active');
+}
+
+function setColor(c, el) {
+  _annotColor = c;
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function undoAnnot() {
+  if (_annotHistory.length <= 1) return;
+  _annotHistory.pop();
+  const img = new Image();
+  img.onload = () => { _annotCtx.clearRect(0,0,_annotCtx.canvas.width,_annotCtx.canvas.height); _annotCtx.drawImage(img,0,0); };
+  img.src = _annotHistory[_annotHistory.length-1];
+}
+
+function clearAnnot() {
+  if (!_annotImg) return;
+  _annotCtx.clearRect(0,0,_annotCtx.canvas.width,_annotCtx.canvas.height);
+  _annotCtx.drawImage(_annotImg,0,0,_annotCtx.canvas.width,_annotCtx.canvas.height);
+  _annotHistory = [_annotCtx.canvas.toDataURL()];
+}
+
+function addLegend() {
+  const inp = document.getElementById('legendInput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  _legends.push({ text: txt, color: _annotColor });
+  inp.value = '';
+  renderLegends();
+}
+
+function renderLegends() {
+  const el = document.getElementById('legendsList');
+  el.innerHTML = _legends.map((l,i) => `
+    <div class="legend-item">
+      <div class="legend-color" style="background:${l.color}"></div>
+      <span>${l.text}</span>
+      <span style="margin-left:auto;cursor:pointer;color:var(--rose);" onclick="_legends.splice(${i},1);renderLegends()">✕</span>
+    </div>`).join('');
+}
+
+function saveAnnotation() {
+  if (_annotPhotoIdx < 0) return;
+  const canvas = document.getElementById('annotCanvas');
+  _sessionPhotos[_annotPhotoIdx].annotated = canvas.toDataURL('image/jpeg', 0.85);
+  _sessionPhotos[_annotPhotoIdx].legends = [..._legends];
+  renderPhotosGrid();
+  closeAnnotModal();
+  showToast('✅ Annotation sauvegardée');
+}
+
+function closeAnnotModal() {
+  document.getElementById('annotModal').style.display = 'none';
+  _annotPhotoIdx = -1;
+}
+
+function closeAnnotIfOutside(e) {
+  if (e.target === document.getElementById('annotModal')) closeAnnotModal();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   TRANSCRIPTION
+// ╚══════════════════════════════════════════════════════╝
+async function transcribeAudio() {
+  const btn = document.getElementById('btnTranscribe');
+  const area = document.getElementById('transcriptArea');
+
+  if (!currentAudioBlob) {
+    area.textContent = '';
+    area.dataset.ph = 'false';
+    area.focus();
+    showToast('💡 Aucun enregistrement — saisissez la transcription ici');
+    advanceStep(3);
+    return;
+  }
+
+  btn.innerHTML = '<span class="spinner"></span> Transcription…';
+  btn.disabled = true;
+
+  try {
+    const b64 = await blobToBase64(currentAudioBlob);
+    const mime = currentAudioBlob.type || 'audio/webm';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content:[
+            { type:'document', source:{ type:'base64', media_type: mime, data: b64 } },
+            { type:'text', text:'Transcris fidèlement cet enregistrement audio d\'une séance de thérapie/kinésiologie en français. Retourne uniquement la transcription brute, sans commentaires ni formatage.' }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const txt = data.content?.map(c=>c.text||'').join('') || '';
+
+    if (txt && !txt.includes('error')) {
+      area.textContent = txt;
+      area.dataset.ph = 'false';
+      showToast('✅ Transcription terminée');
+      advanceStep(3);
+    } else { throw new Error('no text'); }
+  } catch(e) {
+    area.textContent = '';
+    area.dataset.ph = 'false';
+    area.focus();
+    showToast('⚠️ Transcription auto non disponible — saisissez le texte ici');
+  }
+
+  btn.innerHTML = '✨ Transcrire avec l\'IA';
+  btn.disabled = false;
+}
+
+function clearTranscript() {
+  const a = document.getElementById('transcriptArea');
+  a.textContent = 'Saisissez ou transcrivez la séance ici…';
+  a.dataset.ph = 'true';
+}
+
+// Placeholder behavior
+document.addEventListener('DOMContentLoaded',()=>{
+  const a = document.getElementById('transcriptArea');
+  if(a){
+    a.addEventListener('focus',()=>{ if(a.dataset.ph==='true'){a.textContent='';a.dataset.ph='false';} });
+    a.addEventListener('blur',()=>{ if(!a.textContent.trim()){a.textContent='Saisissez ou transcrivez la séance ici…';a.dataset.ph='true';} });
+  }
+});
+
+function blobToBase64(blob){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onloadend=()=>res(r.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(blob);
+  });
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   GÉNÉRATION FICHE
+// ╚══════════════════════════════════════════════════════╝
+async function genererFiche() {
+  const btn = event.currentTarget;
+  const area = document.getElementById('transcriptArea');
+  const transcript = area.dataset.ph==='true' ? '' : area.textContent.trim();
+
+  if (!transcript) { showToast('⚠️ Ajoutez d\'abord une transcription ou des notes'); return; }
+
+  const clientName  = document.getElementById('clientName').value || 'Client';
+  const sessionType = document.getElementById('sessionType').value;
+  const sessionDate = document.getElementById('sessionDate').value;
+  const intention   = document.getElementById('intention').value;
+
+  btn.innerHTML = '<span class="spinner"></span> Rédaction…';
+  btn.disabled = true;
+
+  const prompt = `Tu es une thérapeute holiste et kinésiologue certifiée. À partir de la transcription suivante, rédige une fiche de séance professionnelle en JSON.
+
+Transcription:
+"""
+${transcript}
+"""
+
+Client: ${clientName} | Type: ${sessionType} | Date: ${sessionDate} | Intention: ${intention||'Non précisée'}
+
+Réponds UNIQUEMENT avec ce JSON valide, sans backticks:
+{
+  "resume": "Résumé narratif chaleureux en 3-4 phrases",
+  "observations": "Observations énergétiques et somatiques perçues",
+  "cles": [
+    {"icone":"🔥","titre":"Nom","texte":"Description courte"},
+    {"icone":"💧","titre":"Nom","texte":"Description courte"},
+    {"icone":"🌿","titre":"Nom","texte":"Description courte"},
+    {"icone":"⚡","titre":"Nom","texte":"Description courte"}
+  ],
+  "recommandations": "Suggestions concrètes pour la prochaine séance"
+}`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await r.json();
+    const raw = data.content?.map(c=>c.text||'').join('')||'';
+    const fiche = JSON.parse(raw.replace(/```json|```/g,'').trim());
+
+    document.getElementById('ficheResume').textContent = fiche.resume;
+    document.getElementById('ficheObservations').textContent = fiche.observations;
+    document.getElementById('ficheRecos').textContent = fiche.recommandations;
+
+    const clesEl = document.getElementById('ficheCles');
+    clesEl.innerHTML = fiche.cles.map(c=>`
+      <div class="cle-badge">
+        <div class="cle-icon">${c.icone}</div>
+        <div><div class="cle-label">${c.titre}</div><div class="cle-text">${c.texte}</div></div>
+      </div>`).join('');
+
+    // Photos dans la fiche
+    if (_sessionPhotos.length > 0) {
+      document.getElementById('fichePhotosSection').style.display = 'block';
+      document.getElementById('fichePhotosList').innerHTML = _sessionPhotos.map(p=>`
+        <div class="photo-card" style="cursor:default;">
+          <img src="${p.annotated||p.dataUrl}" alt="${p.caption}" />
+          <div class="photo-caption">${p.caption}</div>
+          ${p.legends?.length ? '<div style="padding:0 10px 8px;font-size:10px;color:var(--aurora);">' + p.legends.map(l=>`<div>• ${l.text}</div>`).join('') + '</div>' : ''}
+        </div>`).join('');
+    }
+
+    document.getElementById('ficheGeneree').style.display = 'block';
+    document.getElementById('ficheGeneree').scrollIntoView({behavior:'smooth'});
+    advanceStep(4);
+    showToast('🌟 Fiche générée !');
+    window._currentFiche = { fiche, clientName, sessionType, sessionDate, transcript, photos: _sessionPhotos.map(p=>({...p})) };
+
+  } catch(err) {
+    showToast('❌ Erreur de génération — vérifiez votre connexion');
+    console.error(err);
+  }
+  btn.innerHTML = '🌟 Rédiger la fiche & les clés de guérison';
+  btn.disabled = false;
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   SAUVEGARDE
+// ╚══════════════════════════════════════════════════════╝
+async function sauvegarderSeance() {
+  if (!window._currentFiche) { showToast('⚠️ Générez d\'abord la fiche'); return; }
+  _data.sessions.push({ ..._currentFiche, id: Date.now() });
+  await saveData();
+  renderJournal();
+  updateJournalCount();
+  showToast('💾 Séance sauvegardée et chiffrée');
+  _sessionPhotos = [];
+  window._currentFiche = null;
+}
+
+function renderJournal() {
+  const el = document.getElementById('journalList');
+  const sessions = _data.sessions || [];
+  if (!sessions.length) {
+    el.innerHTML = `<div style="text-align:center;padding:60px;color:var(--mist);">
+      <div style="font-size:40px;margin-bottom:12px;">📖</div>
+      <div>Aucune séance enregistrée encore.</div>
+      <div style="font-size:12px;margin-top:6px;color:var(--aurora);">🔒 Vos données sont chiffrées sur cet appareil.</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = sessions.slice().reverse().map(s=>`
+    <div class="journal-entry" onclick="viewSession(${s.id})">
+      <div class="journal-entry-date">${s.sessionDate} · ${s.sessionType}</div>
+      <div class="journal-entry-client">${s.clientName}</div>
+      <div class="journal-entry-preview">${(s.fiche?.resume||'').substring(0,120)}…</div>
+      <div class="journal-entry-badges">
+        ${(s.fiche?.cles||[]).map(c=>`<span class="tag tag-aurora">${c.icone} ${c.titre}</span>`).join('')}
+        ${(s.photos||[]).length ? `<span class="tag tag-gold">📸 ${s.photos.length} photo${s.photos.length>1?'s':''}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function updateJournalCount() {
+  document.getElementById('journalCount').textContent = (_data.sessions||[]).length;
+}
+
+function viewSession(id) {
+  const s = (_data.sessions||[]).find(x=>x.id===id);
+  if (!s) return;
+  const photos = (s.photos||[]).map(p=>`
+    <div style="break-inside:avoid;">
+      <img src="${p.annotated||p.dataUrl}" style="max-width:100%;border-radius:8px;margin:8px 0;" />
+      <div style="font-size:12px;color:#555;">${p.caption}</div>
+      ${p.legends?.length ? p.legends.map(l=>`<div style="font-size:11px;color:#7eb8c9;">• ${l.text}</div>`).join('') : ''}
+    </div>`).join('');
+  const win = window.open('','_blank');
+  win.document.write(`<html><head><title>${s.clientName} — ${s.sessionDate}</title>
+  <style>body{font-family:Georgia,serif;max-width:700px;margin:60px auto;padding:0 24px;line-height:1.8;color:#1a1a2e;}
+  h1{font-size:28px;font-weight:300;} h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#7eb8c9;margin-top:28px;}
+  .cle{background:#f5f7ff;padding:12px;border-radius:8px;margin-bottom:8px;border-left:3px solid #7eb8c9;}
+  @media print{body{margin:20px;}}</style></head><body>
+  <h1>${s.clientName} — Séance de ${s.sessionType}</h1>
+  <p style="color:#888;font-size:13px;">${s.sessionDate}</p>
+  <h2>Résumé</h2><p>${s.fiche?.resume||''}</p>
+  <h2>Observations énergétiques</h2><p>${s.fiche?.observations||''}</p>
+  <h2>Clés de guérison</h2>${(s.fiche?.cles||[]).map(c=>`<div class="cle"><strong>${c.icone} ${c.titre}</strong><br>${c.texte}</div>`).join('')}
+  <h2>Recommandations</h2><p>${s.fiche?.recommandations||''}</p>
+  ${photos ? `<h2>Photos & diagrammes</h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">${photos}</div>` : ''}
+  <h2>Transcription</h2><p style="font-size:13px;color:#444;white-space:pre-wrap;">${s.transcript||''}</p>
+  </body></html>`);
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   GUÉRISON
+// ╚══════════════════════════════════════════════════════╝
+async function sauvegarderGuerison() {
+  const entry = {
+    date:    document.getElementById('guerDate').value,
+    niveau:  document.getElementById('guerNiveau').value,
+    ressenti:document.getElementById('guerRessenti').value,
+    prises:  document.getElementById('guerPrises').value,
+    outils:  document.getElementById('guerOutils').value,
+    id: Date.now()
+  };
+  if (!entry.ressenti && !entry.prises) { showToast('⚠️ Ajoutez au moins un ressenti'); return; }
+  if (!_data.guer) _data.guer = [];
+  _data.guer.push(entry);
+  await saveData();
+  renderGuerEntries();
+  document.getElementById('guerRessenti').value='';
+  document.getElementById('guerPrises').value='';
+  document.getElementById('guerOutils').value='';
+  showToast('💚 Entrée sauvegardée et chiffrée');
+}
+
+function renderGuerEntries() {
+  const el = document.getElementById('guerEntries');
+  const entries = _data.guer || [];
+  if (!entries.length) { el.innerHTML=''; return; }
+  el.innerHTML = entries.slice().reverse().map(e=>`
+    <div class="journal-entry" style="cursor:default;">
+      <div class="journal-entry-date">${e.date} · Énergie ${e.niveau}/10</div>
+      ${e.ressenti?`<div class="journal-entry-preview" style="margin-top:8px;"><span style="color:var(--aurora);font-size:10px;text-transform:uppercase;letter-spacing:.1em;">Ressenti</span><br>${e.ressenti}</div>`:''}
+      ${e.prises?`<div class="journal-entry-preview" style="margin-top:8px;"><span style="color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:.1em;">Prises de conscience</span><br>${e.prises}</div>`:''}
+      ${e.outils?`<div class="journal-entry-preview" style="margin-top:8px;"><span style="color:var(--sage);font-size:10px;text-transform:uppercase;letter-spacing:.1em;">Outils</span><br>${e.outils}</div>`:''}
+    </div>`).join('');
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   RAPPORT
+// ╚══════════════════════════════════════════════════════╝
+async function genererRapport() {
+  const nom   = document.getElementById('rapportNom').value||'Praticien·ne';
+  const titre = document.getElementById('rapportTitre').value||'Mon parcours de guérison';
+  const ecole = document.getElementById('rapportEcole').value||'';
+  const theme = document.getElementById('rapportTheme').value||'';
+  const btn   = event.currentTarget;
+
+  const sessionsSummary = (_data.sessions||[]).map(s=>
+    `Séance du ${s.sessionDate} (${s.clientName}, ${s.sessionType}): ${s.fiche?.resume||''}`
+  ).join('\n\n');
+
+  const guerSummary = (_data.guer||[]).map(e=>
+    `${e.date} - Niveau ${e.niveau}/10: ${e.ressenti} | Conscience: ${e.prises}`
+  ).join('\n');
+
+  btn.innerHTML = '<span class="spinner"></span> Génération…';
+  btn.disabled = true;
+
+  const prompt = `Tu es une formatrice experte en kinésiologie et thérapie holistique. Rédige un travail de diplôme professionnel, authentique et touchant en français.
+
+Praticienne: ${nom} | École: ${ecole} | Titre: ${titre}
+Thème: ${theme}
+
+Séances pratiquées:
+${sessionsSummary||'Aucune séance encore enregistrée'}
+
+Journal personnel:
+${guerSummary||'Aucune entrée encore'}
+
+Rédige un document complet avec: introduction personnelle, exploration théorique de la kinésiologie, récit du parcours de guérison personnelle, présentation des cas pratiques, clés de transformation identifiées, et conclusion. Style: professionnel, introspectif, incarné. ~700 mots.`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await r.json();
+    const txt = data.content?.map(c=>c.text||'').join('')||'';
+    document.getElementById('rapportOutput').innerHTML = `
+      <div class="rapport-preview" id="rapportContent">
+        <div class="rapport-title">${titre}</div>
+        <div class="rapport-sub">par ${nom}${ecole?' · '+ecole:''} · ${new Date().getFullYear()}</div>
+        <hr class="rapport-divider">
+        <div class="rapport-body">${txt}</div>
+      </div>`;
+    showToast('📄 Rapport généré !');
+  } catch(e) { showToast('❌ Erreur — vérifiez votre connexion'); }
+
+  btn.innerHTML = '🌟 Générer le rapport complet';
+  btn.disabled = false;
+}
+
+function imprimerFiche() { window.print(); }
+function imprimerRapport() {
+  const el = document.getElementById('rapportContent');
+  if (!el) { showToast('⚠️ Générez d\'abord le rapport'); return; }
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>Rapport</title>
+  <style>body{font-family:Georgia,serif;max-width:700px;margin:60px auto;padding:0 24px;line-height:1.9;color:#1a1a2e;}
+  h1{font-size:30px;font-weight:300;}p{margin-bottom:16px;font-size:15px;}</style></head>
+  <body>${el.innerHTML}</body></html>`);
+  w.print();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//   UTILS
+// ╚══════════════════════════════════════════════════════╝
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
